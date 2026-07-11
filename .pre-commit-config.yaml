@@ -1,0 +1,17 @@
+# Pre-commit safeguards. Install once per clone:
+#   pip install pre-commit && pre-commit install
+# Runs automatically on every `git commit`.
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks           # blocks commits containing secrets/keys/tokens
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: detect-private-key         # extra belt-and-suspenders on key material
+      - id: check-added-large-files    # stop accidental data-dump commits
+        args: ["--maxkb=512"]
+      - id: end-of-file-fixer
+      - id: trailing-whitespace

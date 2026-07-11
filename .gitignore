@@ -1,0 +1,19 @@
+# --- secrets & local config (NEVER commit) ---
+secrets/
+config.py
+.streamlit/secrets.toml
+*.gsheet
+
+# --- python ---
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# --- os / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

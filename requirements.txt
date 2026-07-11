@@ -1,0 +1,5 @@
+google-api-python-client
+google-auth
+pandas
+plotly
+streamlit
