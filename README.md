@@ -37,24 +37,34 @@ data, follow **Setup** below.
 
 ## How it works
 
-The source spreadsheet stores each year in a `Full YYYY` tab as vertically
-stacked monthly blocks, with seven `amount | comment` column pairs (Food, Social
-Life, House Purchases, Fixed costs, Travels, Others, Income). `src/data.py`
-reverse-engineers that layout into a tidy transaction table:
+`src/data.py` parses your sheet into a tidy transaction table, and all analytics
+build on that single shape:
 
-| year | month | date | category | amount | comment | is_income |
-|------|-------|------|----------|--------|---------|-----------|
+| year | month | date | category | amount | comment | is_income | month_str |
+|------|-------|------|----------|--------|---------|-----------|-----------|
 
-European number formats (comma decimal, non-breaking-space thousands, `€`) are
-handled during parsing. `src/validate.py` verifies the parse against the sheet's
-own totals.
+### Sheet layouts
 
-Rent is not in the `Full` tabs — it's read separately from the `Lifetime` tab's
-`MONTHLY TIMELINE` and injected as a monthly expense.
+The layout is configured in `config.py` (see `config.example.py`); everything
+about *how your sheet is shaped* lives in `src/schema.py`.
 
-> **The parser is specific to this sheet layout.** If your spreadsheet has a
-> different shape, either adapt `src/data.py` or just use **demo mode**, which
-> loads `src/sample_data.py` (same schema, synthetic data) with no sheet at all.
+- **`flat`** *(recommended for most people)* — one row per transaction, e.g.
+  `Date | Category | Amount | Note`. Columns are matched by header name or index;
+  income is detected by category name or by amount sign. Number format (decimal,
+  thousands, currency) is configurable, so US (`1,234.56`) and European
+  (`1.234,56 €`) sheets both work.
+
+- **`block`** *(the layout this project started with)* — each year in a
+  `Full YYYY` tab as vertically stacked monthly blocks of `amount | comment`
+  column pairs with per-category `TOTAL` rows. `src/validate.py` cross-checks the
+  parse against those totals. A monthly figure kept outside the blocks (rent, in
+  the original sheet's `Lifetime` → `MONTHLY TIMELINE`) is injected as a monthly
+  expense.
+
+Parsers for both layouts are pure functions over a raw value matrix, unit-tested
+in `tests/test_parsers.py` (run `python tests/test_parsers.py`). If neither
+layout fits, adapt `src/schema.py`/`src/data.py` — or just use **demo mode**
+(`src/sample_data.py`, synthetic data, no sheet at all).
 
 ## Setup
 
@@ -106,12 +116,14 @@ before they can be committed.
 src/
   app.py            Streamlit dashboard
   analytics.py      metrics (pandas, no UI)
-  data.py           parser: Full YYYY tabs -> tidy transactions
+  data.py           layout-aware parser -> tidy transactions
+  schema.py         sheet-layout config (block / flat, number format)
   sample_data.py    synthetic dataset for demo mode
   sheets_client.py  Google Sheets API wrapper
-  validate.py       parse vs. sheet-total integrity check
+  validate.py       parse vs. sheet-total integrity check (block layout)
   inspect_sheet.py  print tab structure (dev helper)
-config.example.py   template for your sheet ID
+tests/test_parsers.py  unit tests for both layouts
+config.example.py   template for sheet ID + layout config
 requirements.txt
 ```
 
