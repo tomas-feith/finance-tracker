@@ -2,12 +2,14 @@
 the sheet's own TOTAL rows in each Full tab. Any mismatch > 1 cent is flagged."""
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import re
-from sheets_client import list_tabs, get_values
-from data import parse_amount, CATEGORY_COLS, MONTHS, _cell, _load_full_transactions
+
+from data import CATEGORY_COLS, MONTHS, _cell, _load_full_transactions, parse_amount
+from sheets_client import get_values, list_tabs
 
 _MONTH_HEADER = re.compile(r"^\s*([A-Z]{3})[A-Z]*\s+(\d{4})\s*$", re.IGNORECASE)
 
@@ -25,7 +27,8 @@ def sheet_totals():
             if m and m.group(1).upper()[:3] in MONTHS:
                 cur = (int(m.group(2)), MONTHS[m.group(1).upper()[:3]])
                 continue
-            if cur and any((_cell(row, c) or "").strip() == "TOTAL" for c in (1, 3, 5, 7, 9, 11, 13)):
+            total_cols = (1, 3, 5, 7, 9, 11, 13)
+            if cur and any((_cell(row, c) or "").strip() == "TOTAL" for c in total_cols):
                 for amt_col, cat in CATEGORY_COLS.items():
                     if (_cell(row, amt_col + 1) or "").strip() == "TOTAL":
                         val = parse_amount(_cell(row, amt_col))

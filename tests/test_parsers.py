@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from schema import FlatLayout, BlockLayout, NumberFormat, DEFAULT_BLOCK, DEFAULT_NUMBER
-from data import parse_flat_values, parse_block_values
+from data import parse_block_values, parse_flat_values
+from schema import DEFAULT_BLOCK, DEFAULT_NUMBER, FlatLayout, NumberFormat
 
 _US = NumberFormat(decimal=".", thousands=",", currency="$")
 

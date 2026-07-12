@@ -1,0 +1,44 @@
+[project]
+name = "finance-tracker"
+version = "0.1.0"
+description = "Live Google Sheets personal-finance dashboard (Streamlit + Plotly)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "google-api-python-client",
+    "google-auth",
+    "pandas",
+    "plotly",
+    "streamlit",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "mypy",
+    "ruff",
+    "pre-commit",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# These modules are run as scripts and must manipulate sys.path before importing
+# sibling modules / the root config.py, so imports-after-code is intentional.
+"src/*" = ["E402"]
+"tests/*" = ["E402"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src", "tests"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+no_implicit_optional = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

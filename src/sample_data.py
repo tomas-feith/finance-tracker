@@ -8,8 +8,8 @@ is coincidental.
 """
 from __future__ import annotations
 
-import random
 import datetime as dt
+import random
 
 import pandas as pd
 

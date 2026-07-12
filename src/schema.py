@@ -14,8 +14,8 @@ of this from `config.py` by setting LAYOUT / NUMBER_FORMAT / BLOCK / FLAT.
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 from dataclasses import dataclass, field
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # project root (config.py)
 
@@ -70,7 +70,7 @@ def resolve():
     layout = "block"
     number, block, flat = NumberFormat(), BlockLayout(), FlatLayout()
     try:
-        import config  # type: ignore
+        import config
         layout = getattr(config, "LAYOUT", layout)
         number = getattr(config, "NUMBER_FORMAT", number)
         block = getattr(config, "BLOCK", block)

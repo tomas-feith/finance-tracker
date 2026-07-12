@@ -11,20 +11,20 @@ unit-tested without hitting Google Sheets.
 """
 from __future__ import annotations
 
+import datetime as dt
 import re
 import sys
-import datetime as dt
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
 
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # project root (config.py)
 sys.path.insert(0, str(Path(__file__).resolve().parent))         # src (sheets_client)
 
-from sheets_client import list_tabs, get_values
 import schema as _schema
-from schema import DEFAULT_NUMBER, DEFAULT_BLOCK
+from schema import DEFAULT_BLOCK, DEFAULT_NUMBER
+from sheets_client import get_values, list_tabs
 
 MONTHS = {
     "JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "MAY": 5, "JUN": 6,
@@ -99,7 +99,7 @@ def parse_block_values(values, block=DEFAULT_BLOCK, nf=DEFAULT_NUMBER) -> list[d
             cur_month = MONTHS[m.group(1).upper()[:3]]
             cur_year = int(m.group(2))
             continue
-        if cur_month is None:
+        if cur_month is None or cur_year is None:
             continue
         if first in (block.header_first_cell, block.net_first_cell):
             continue
@@ -168,7 +168,7 @@ def parse_flat_values(values, flat, nf=DEFAULT_NUMBER) -> list[dict]:
     ai = _col_index(flat.amount_col, header)
     ci = _col_index(flat.category_col, header)
     xi = _col_index(flat.description_col, header)
-    if None in (di, ai, ci):
+    if di is None or ai is None or ci is None:
         raise ValueError(
             f"Flat layout: could not locate date/amount/category columns in header {header!r}"
         )

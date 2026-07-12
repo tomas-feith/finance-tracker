@@ -12,6 +12,10 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
+# --- local launch helpers ---
+run_dashboard.bat
+run_dashboard.sh
+
 # --- os / editor ---
 .DS_Store
 Thumbs.db

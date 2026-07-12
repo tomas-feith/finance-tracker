@@ -3,6 +3,7 @@ dashboard shows. Pure pandas, no Streamlit here so it stays testable."""
 from __future__ import annotations
 
 import re
+
 import pandas as pd
 
 EXPENSE_CATEGORIES = [

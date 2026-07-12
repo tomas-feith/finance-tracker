@@ -1,5 +1,7 @@
 # finance-tracker
 
+[![CI](https://github.com/tomas-feith/finance-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/tomas-feith/finance-tracker/actions/workflows/ci.yml)
+
 A Python dashboard that reads a personal-finance Google Sheet **live via the
 Google Sheets API**, parses the transaction-level data, and exposes analytics the
 spreadsheet doesn't — monthly category breakdowns, rolling trends, seasonality,
@@ -11,16 +13,16 @@ Built with **pandas**, **Plotly**, and **Streamlit**.
 ## Try it instantly (demo mode)
 
 No Google account needed — with no credentials configured, the app loads a
-synthetic sample dataset so you can explore every feature:
+synthetic sample dataset so you can explore every feature. Install
+[uv](https://docs.astral.sh/uv/) (`pip install uv`), then:
 
 ```bash
-python -m venv .venv && .venv/Scripts/activate   # or: source .venv/bin/activate
-pip install -r requirements.txt
-streamlit run src/app.py
+uv run streamlit run src/app.py
 ```
 
-A banner marks demo mode. Force it anytime with `FINANCE_DEMO=1`. To use your own
-data, follow **Setup** below.
+`uv` creates the environment from the lockfile on first run. A banner marks demo
+mode; force it anytime with `FINANCE_DEMO=1`. To use your own data, follow
+**Setup** below.
 
 ## Features
 
@@ -88,27 +90,25 @@ cp config.example.py config.py
 
 ### 3. Install & run
 
-```bash
-python -m venv .venv
-# Windows:  .venv\Scripts\activate      macOS/Linux:  source .venv/bin/activate
-pip install -r requirements.txt
+Uses [uv](https://docs.astral.sh/uv/) (`pip install uv` if you don't have it):
 
-streamlit run src/app.py
+```bash
+uv sync                         # create the env from pyproject + uv.lock
+uv run streamlit run src/app.py
 ```
 
 Then open <http://localhost:8501>. Data is cached for 10 minutes; use the
-**Refresh data** button in the sidebar to pull the latest.
+**Refresh data** button in the sidebar to pull the latest. (No uv? `pip install
+-e .` then `streamlit run src/app.py` also works.)
 
-### 4. (Recommended) enable the pre-commit safeguards
+### 4. (Recommended) enable the pre-commit hooks
 
 ```bash
-pip install pre-commit
-pre-commit install
+uv run pre-commit install
 ```
 
-This runs [gitleaks](https://github.com/gitleaks/gitleaks) and related hooks on
-every commit to block secrets, private keys, and accidental large data files
-before they can be committed.
+Runs [gitleaks](https://github.com/gitleaks/gitleaks) (blocks secrets/keys/large
+data files) plus **ruff** and **mypy** on every commit — the same checks CI runs.
 
 ## Project layout
 
@@ -124,7 +124,8 @@ src/
   inspect_sheet.py  print tab structure (dev helper)
 tests/test_parsers.py  unit tests for both layouts
 config.example.py   template for sheet ID + layout config
-requirements.txt
+pyproject.toml      deps + ruff / mypy / pytest config (uv.lock pins versions)
+.github/workflows/  CI: ruff + mypy + pytest
 ```
 
 > **Note:** this repo contains **no financial data** — everything is read live
@@ -139,6 +140,18 @@ requirements.txt
   before they enter history.
 - The service account is **read-only** (`spreadsheets.readonly`, `Viewer`) and
   scoped to a single sheet.
+
+## Development
+
+```bash
+uv sync                  # install runtime + dev tools (ruff, mypy, pytest)
+uv run ruff check        # lint
+uv run mypy              # type-check
+uv run pytest            # tests
+```
+
+CI (`.github/workflows/ci.yml`) runs all three on every push and pull request,
+and the pre-commit hooks run them locally before each commit.
 
 ## License
 

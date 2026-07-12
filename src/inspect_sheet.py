@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # for config.py
 sys.path.insert(0, str(Path(__file__).resolve().parent))         # for sheets_client
 
-from sheets_client import list_tabs, get_values  # noqa: E402
+from sheets_client import get_values, list_tabs  # noqa: E402
 
 
 def main() -> None:

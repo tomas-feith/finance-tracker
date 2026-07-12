@@ -17,14 +17,17 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+import analytics as A
 from data import load_transactions
 from sample_data import load_sample_transactions
 from sheets_client import has_live_config
-import analytics as A
 
 st.set_page_config(page_title="Finances", page_icon="\U0001F4B0", layout="wide")
 
-EUR = lambda v: f"€{v:,.0f}"
+def EUR(v: float) -> str:
+    return f"€{v:,.0f}"
+
+
 PLOT_TMPL = "plotly_white"
 
 # Demo mode: forced via FINANCE_DEMO=1, or auto when no live sheet is configured.

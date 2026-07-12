@@ -6,8 +6,8 @@ service-account credentials from secrets/service_account.json.
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
 
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -22,7 +22,7 @@ def get_sheet_id() -> str:
     if sid:
         return sid
     try:
-        from config import SHEET_ID  # type: ignore
+        from config import SHEET_ID
         return SHEET_ID
     except Exception as exc:  # pragma: no cover
         raise RuntimeError(
