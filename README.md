@@ -8,6 +8,20 @@ own totals.
 
 Built with **pandas**, **Plotly**, and **Streamlit**.
 
+## Try it instantly (demo mode)
+
+No Google account needed — with no credentials configured, the app loads a
+synthetic sample dataset so you can explore every feature:
+
+```bash
+python -m venv .venv && .venv/Scripts/activate   # or: source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run src/app.py
+```
+
+A banner marks demo mode. Force it anytime with `FINANCE_DEMO=1`. To use your own
+data, follow **Setup** below.
+
 ## Features
 
 - **Overview** — monthly cashflow (income vs. expense, net), spending by category
@@ -34,6 +48,13 @@ reverse-engineers that layout into a tidy transaction table:
 European number formats (comma decimal, non-breaking-space thousands, `€`) are
 handled during parsing. `src/validate.py` verifies the parse against the sheet's
 own totals.
+
+Rent is not in the `Full` tabs — it's read separately from the `Lifetime` tab's
+`MONTHLY TIMELINE` and injected as a monthly expense.
+
+> **The parser is specific to this sheet layout.** If your spreadsheet has a
+> different shape, either adapt `src/data.py` or just use **demo mode**, which
+> loads `src/sample_data.py` (same schema, synthetic data) with no sheet at all.
 
 ## Setup
 
@@ -86,6 +107,7 @@ src/
   app.py            Streamlit dashboard
   analytics.py      metrics (pandas, no UI)
   data.py           parser: Full YYYY tabs -> tidy transactions
+  sample_data.py    synthetic dataset for demo mode
   sheets_client.py  Google Sheets API wrapper
   validate.py       parse vs. sheet-total integrity check
   inspect_sheet.py  print tab structure (dev helper)

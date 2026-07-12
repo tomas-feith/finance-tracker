@@ -103,7 +103,9 @@ def recurring_costs(df: pd.DataFrame, min_months: int = 4) -> pd.DataFrame:
         last_seen=("date", "max"),
     ).reset_index()
     g = g[g["months"] >= min_months].sort_values("total", ascending=False)
-    return g.round(2)
+    num = g.select_dtypes("number").columns
+    g[num] = g[num].round(2)
+    return g
 
 
 def outliers(df: pd.DataFrame, z: float = 2.5) -> pd.DataFrame:
@@ -113,7 +115,9 @@ def outliers(df: pd.DataFrame, z: float = 2.5) -> pd.DataFrame:
     e = e.join(stats, on="category")
     e["z"] = (e["amount"] - e["mean"]) / e["std"].replace(0, pd.NA)
     out = e[e["z"] >= z].sort_values("amount", ascending=False)
-    return out[["date", "category", "amount", "comment", "z"]].round(2)
+    out = out[["date", "category", "amount", "comment", "z"]].copy()
+    out[["amount", "z"]] = out[["amount", "z"]].round(2)
+    return out
 
 
 def top_expenses(df: pd.DataFrame, n: int = 25) -> pd.DataFrame:

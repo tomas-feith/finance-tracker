@@ -5,6 +5,7 @@ Run:  .venv\\Scripts\\streamlit.exe run src\\app.py
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -17,6 +18,8 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from data import load_transactions
+from sample_data import load_sample_transactions
+from sheets_client import has_live_config
 import analytics as A
 
 st.set_page_config(page_title="Finances", page_icon="\U0001F4B0", layout="wide")
@@ -24,10 +27,13 @@ st.set_page_config(page_title="Finances", page_icon="\U0001F4B0", layout="wide")
 EUR = lambda v: f"€{v:,.0f}"
 PLOT_TMPL = "plotly_white"
 
+# Demo mode: forced via FINANCE_DEMO=1, or auto when no live sheet is configured.
+DEMO = os.getenv("FINANCE_DEMO") == "1" or not has_live_config()
 
-@st.cache_data(ttl=600, show_spinner="Loading from Google Sheets…")
-def get_data() -> pd.DataFrame:
-    return load_transactions()
+
+@st.cache_data(ttl=600, show_spinner="Loading data…")
+def get_data(demo: bool) -> pd.DataFrame:
+    return load_sample_transactions() if demo else load_transactions()
 
 
 def cat_order(cats):
@@ -36,11 +42,12 @@ def cat_order(cats):
 
 
 # ------------------------------------------------------------------ load + filter
-df_all = get_data()
+df_all = get_data(DEMO)
 years = sorted(df_all["year"].unique())
 
 st.sidebar.title("\U0001F4B0 Finances")
-st.sidebar.caption("Live from Google Sheets · refresh clears the 10-min cache")
+st.sidebar.caption("⚠️ Demo mode — synthetic data"
+                   if DEMO else "Live from Google Sheets · refresh clears the 10-min cache")
 if st.sidebar.button("\U0001F504 Refresh data"):
     st.cache_data.clear()
     st.rerun()
@@ -68,6 +75,10 @@ sav = net / total_inc if total_inc else 0
 n_months = df["month_str"].nunique()
 
 st.title("Personal Finance Dashboard")
+if DEMO:
+    st.info("**Demo mode** — synthetic sample data. To use your own finances, add a "
+            "service-account key to `secrets/` and a `config.py` with your sheet ID "
+            "(see the README).", icon="🧪")
 last_full = ms.iloc[-2] if len(ms) >= 2 else ms.iloc[-1]
 c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Total income", EUR(total_inc))
@@ -92,7 +103,7 @@ with tab_over:
                     line=dict(color="#0b0b0b", width=2))
     fig.update_layout(barmode="relative", template=PLOT_TMPL, height=420,
                       legend=dict(orientation="h", y=1.1), yaxis_title="€")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     st.subheader("Spending by category over time")
     st.caption("The view your sheet doesn't have: every category, every month.")
@@ -102,7 +113,7 @@ with tab_over:
                    color_discrete_map=A.CATEGORY_COLORS, template=PLOT_TMPL)
     fig2.update_layout(height=420, yaxis_title="€",
                        legend=dict(orientation="h", y=1.1))
-    st.plotly_chart(fig2, use_container_width=True)
+    st.plotly_chart(fig2, width="stretch")
 
     st.subheader("Year by year")
     ysum = A.yearly_summary(pd.concat([exp_df, A.income(df)]))
@@ -110,7 +121,7 @@ with tab_over:
     for c in ["income", "expense", "net", "avg_month_spend"]:
         show[c] = show[c].map(EUR)
     show["savings_rate"] = (ysum["savings_rate"] * 100).map(lambda v: f"{v:.0f}%")
-    st.dataframe(show, use_container_width=True, hide_index=True)
+    st.dataframe(show, width="stretch", hide_index=True)
 
 # ------------------------------------------------------------------ TRENDS
 with tab_trend:
@@ -125,7 +136,7 @@ with tab_trend:
                     line=dict(color="#eb6834", width=2))
     fig.update_layout(template=PLOT_TMPL, height=430, yaxis_title="€",
                       legend=dict(orientation="h", y=1.1))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     col_a, col_b = st.columns(2)
     with col_a:
@@ -135,7 +146,7 @@ with tab_trend:
         fig = px.bar(seas, x="month_name", y="expense", template=PLOT_TMPL,
                      color_discrete_sequence=["#2a78d6"])
         fig.update_layout(height=360, yaxis_title="€ avg", xaxis_title="")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     with col_b:
         st.subheader("Savings rate over time")
         st.caption("Clipped to ±100% — early low-income months produce extreme "
@@ -151,7 +162,7 @@ with tab_trend:
         )
         fig.update_layout(template=PLOT_TMPL, height=360,
                           yaxis=dict(title="% of income saved", range=[-110, 110]))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 # ------------------------------------------------------------------ CATEGORIES
 with tab_cat:
@@ -164,7 +175,7 @@ with tab_cat:
                      category_orders={"category": cat_order(cat_sel)})
         fig.update_traces(textposition="outside", textinfo="label+percent")
         fig.update_layout(template=PLOT_TMPL, height=430, showlegend=False)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     with col_b:
         st.caption("Pareto — cumulative share of spend")
         fig = go.Figure()
@@ -178,7 +189,7 @@ with tab_cat:
                           yaxis2=dict(title="cum %", overlaying="y", side="right",
                                       range=[0, 100]),
                           legend=dict(orientation="h", y=1.12))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     st.subheader("Category detail")
     pick = st.selectbox("Category", cat_order(cat_sel))
@@ -189,11 +200,11 @@ with tab_cat:
     fig = px.bar(monthly, x="date", y="amount", template=PLOT_TMPL,
                  color_discrete_sequence=[A.CATEGORY_COLORS[pick]])
     fig.update_layout(height=300, yaxis_title="€")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     st.dataframe(
         sub[["date", "amount", "comment"]].sort_values("amount", ascending=False)
         .head(30).assign(date=lambda d: d["date"].dt.strftime("%Y-%m")),
-        use_container_width=True, hide_index=True)
+        width="stretch", hide_index=True)
 
 # ------------------------------------------------------------------ RECURRING & OUTLIERS
 with tab_recur:
@@ -206,22 +217,26 @@ with tab_recur:
         total=rec["total"].map(EUR),
         last_seen=rec["last_seen"].dt.strftime("%Y-%m"),
     )
-    st.dataframe(rec_show, use_container_width=True, hide_index=True,
+    st.dataframe(rec_show, width="stretch", hide_index=True,
                  column_config={"key": "item", "months": "months seen"})
 
     st.subheader("Outlier transactions")
     st.caption("Individual expenses far above their category's norm (z ≥ 2.5).")
     out = A.outliers(exp_df).assign(date=lambda d: d["date"].dt.strftime("%Y-%m"))
-    st.dataframe(out, use_container_width=True, hide_index=True)
+    st.dataframe(out, width="stretch", hide_index=True)
 
     st.subheader("Top 25 single expenses")
     top = A.top_expenses(exp_df).assign(
         date=lambda d: d["date"].dt.strftime("%Y-%m"), amount=lambda d: d["amount"].map(EUR))
-    st.dataframe(top, use_container_width=True, hide_index=True)
+    st.dataframe(top, width="stretch", hide_index=True)
 
 # ------------------------------------------------------------------ DATA QUALITY
 with tab_dq:
     st.subheader("Sheet vs. parsed totals")
+    if DEMO:
+        st.info("Data-quality checks compare parsed totals against the live sheet's "
+                "own `TOTAL` cells — not applicable to synthetic demo data.", icon="🧪")
+        st.stop()
     st.markdown(
         "During parsing we compare each parsed category total against your sheet's "
         "own `TOTAL` row. Where they differ, your sheet's `SUM()` range doesn't "
@@ -241,6 +256,6 @@ with tab_dq:
         dq = pd.DataFrame(rows).sort_values("undercount", ascending=False)
         st.metric("Total hidden spend (sheet undercount)",
                   EUR(dq["undercount"].sum()))
-        st.dataframe(dq, use_container_width=True, hide_index=True)
+        st.dataframe(dq, width="stretch", hide_index=True)
     else:
         st.success("No discrepancies — every parsed total matches the sheet.")

@@ -31,6 +31,18 @@ def get_sheet_id() -> str:
         ) from exc
 
 
+def has_live_config() -> bool:
+    """True only if both a service-account key and a sheet ID are available.
+    When False, the app falls back to synthetic demo data."""
+    if not CREDENTIALS_PATH.exists():
+        return False
+    try:
+        sid = get_sheet_id()
+    except Exception:
+        return False
+    return bool(sid) and sid != "your-google-sheet-id-here"
+
+
 @lru_cache(maxsize=1)
 def _service():
     if not CREDENTIALS_PATH.exists():
