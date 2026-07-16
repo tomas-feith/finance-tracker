@@ -101,6 +101,10 @@ Then open <http://localhost:8501>. Data is cached for 10 minutes; use the
 **Refresh data** button in the sidebar to pull the latest. (No uv? `pip install
 -e .` then `streamlit run src/app.py` also works.)
 
+If 8501 is already taken by another local dashboard, use `run_dashboard.bat`
+(Windows) or `./run_dashboard.sh`, which pick the next free port and print the
+URL they settled on.
+
 ### 4. (Recommended) enable the pre-commit hooks
 
 ```bash
