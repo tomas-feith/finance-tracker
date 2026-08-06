@@ -18,7 +18,7 @@ import sys
 
 DEFAULT_PORT = 8501
 SEARCH_LIMIT = 50
-CONNECT_TIMEOUT = 0.25   # local-only probe; a listener answers far inside this
+CONNECT_TIMEOUT = 0.25  # local-only probe; a listener answers far inside this
 
 
 def is_free(port: int) -> bool:

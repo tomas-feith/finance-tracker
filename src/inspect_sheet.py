@@ -3,13 +3,14 @@
 For each tab: dimensions, detected header row, and a few sample rows.
 Run:  .venv\\Scripts\\python.exe src\\inspect_sheet.py
 """
+
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # for config.py
-sys.path.insert(0, str(Path(__file__).resolve().parent))         # for sheets_client
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # for sheets_client
 
 from sheets_client import get_values, list_tabs  # noqa: E402
 

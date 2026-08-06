@@ -6,6 +6,7 @@ dashboard runs with no Google Sheets access. Deterministic (seeded) so the demo
 looks the same every run. This is fake data — any resemblance to real finances
 is coincidental.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -26,8 +27,15 @@ _RECURRING = [
 ]
 _GROCERY_WEEKS = ["1st - 7th", "8th - 14th", "15th - 21st", "22nd - 28th"]
 _SOCIAL = ["Dinner", "Cinema", "Drinks", "Board games", "Concert", "Lunch out"]
-_HOUSE = ["Toilet paper", "Detergent", "Light bulbs", "Sponges", "Trash bags",
-          "Shampoo", "Batteries"]
+_HOUSE = [
+    "Toilet paper",
+    "Detergent",
+    "Light bulbs",
+    "Sponges",
+    "Trash bags",
+    "Shampoo",
+    "Batteries",
+]
 _OTHERS = ["Books", "Haircut", "Gift", "Clothes", "Phone case", "Charity"]
 _TRAVEL_DEST = ["Lisbon", "Berlin", "Rome", "Amsterdam", "Paris", "Prague"]
 
@@ -46,11 +54,17 @@ def load_sample_transactions() -> pd.DataFrame:
     recs: list[dict] = []
 
     def add(y, m, category, amount, comment, is_income=False):
-        recs.append({
-            "year": y, "month": m, "date": dt.date(y, m, 1),
-            "category": category, "amount": round(amount, 2),
-            "comment": comment, "is_income": is_income,
-        })
+        recs.append(
+            {
+                "year": y,
+                "month": m,
+                "date": dt.date(y, m, 1),
+                "category": category,
+                "amount": round(amount, 2),
+                "comment": comment,
+                "is_income": is_income,
+            }
+        )
 
     for i, (y, m) in enumerate(_months(_START, _END)):
         # --- income ---
@@ -103,6 +117,8 @@ def load_sample_transactions() -> pd.DataFrame:
 
 if __name__ == "__main__":
     d = load_sample_transactions()
-    print(f"{len(d):,} synthetic rows, {d['month_str'].nunique()} months "
-          f"({d['date'].min():%Y-%m} -> {d['date'].max():%Y-%m})")
+    print(
+        f"{len(d):,} synthetic rows, {d['month_str'].nunique()} months "
+        f"({d['date'].min():%Y-%m} -> {d['date'].max():%Y-%m})"
+    )
     print(d.groupby("category")["amount"].agg(["count", "sum"]).round(2))

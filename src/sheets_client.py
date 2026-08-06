@@ -3,6 +3,7 @@
 Reads the spreadsheet ID from config.py (or the SHEET_ID env var) and the
 service-account credentials from secrets/service_account.json.
 """
+
 from __future__ import annotations
 
 import os
@@ -23,6 +24,7 @@ def get_sheet_id() -> str:
         return sid
     try:
         from config import SHEET_ID
+
         return SHEET_ID
     except Exception as exc:  # pragma: no cover
         raise RuntimeError(
@@ -75,11 +77,5 @@ def list_tabs() -> list[dict]:
 def get_values(tab: str, cell_range: str | None = None) -> list[list]:
     """Return raw cell values for a tab (optionally a specific A1 range)."""
     rng = f"'{tab}'!{cell_range}" if cell_range else f"'{tab}'"
-    resp = (
-        _service()
-        .spreadsheets()
-        .values()
-        .get(spreadsheetId=get_sheet_id(), range=rng)
-        .execute()
-    )
+    resp = _service().spreadsheets().values().get(spreadsheetId=get_sheet_id(), range=rng).execute()
     return resp.get("values", [])

@@ -9,6 +9,7 @@ Both produce the same schema:
 The `parse_*_values` functions are pure (take a raw values matrix) so they can be
 unit-tested without hitting Google Sheets.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -20,15 +21,25 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # project root (config.py)
-sys.path.insert(0, str(Path(__file__).resolve().parent))         # src (sheets_client)
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # src (sheets_client)
 
 import schema as _schema
 from schema import DEFAULT_BLOCK, DEFAULT_NUMBER
 from sheets_client import get_values, list_tabs
 
 MONTHS = {
-    "JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "MAY": 5, "JUN": 6,
-    "JUL": 7, "AUG": 8, "SEP": 9, "OCT": 10, "NOV": 11, "DEC": 12,
+    "JAN": 1,
+    "FEB": 2,
+    "MAR": 3,
+    "APR": 4,
+    "MAY": 5,
+    "JUN": 6,
+    "JUL": 7,
+    "AUG": 8,
+    "SEP": 9,
+    "OCT": 10,
+    "NOV": 11,
+    "DEC": 12,
 }
 _MONTH_HEADER = re.compile(r"^\s*([A-Z]{3})[A-Z]*\s+(\d{4})\s*$", re.IGNORECASE)
 _TIMELINE_MONTH = re.compile(r"^\s*(\d{4})-([A-Za-z]{3,})\s*$")
@@ -51,7 +62,7 @@ def parse_amount(raw, nf=DEFAULT_NUMBER) -> float | None:
         return None
     for c in nf.currency:
         s = s.replace(c, "")
-    s = s.replace("\xa0", "").replace(" ", "")   # always drop spaces & nbsp
+    s = s.replace("\xa0", "").replace(" ", "")  # always drop spaces & nbsp
     for c in nf.thousands:
         s = s.replace(c, "")
     if nf.decimal and nf.decimal != ".":
@@ -109,13 +120,17 @@ def parse_block_values(values, block=DEFAULT_BLOCK, nf=DEFAULT_NUMBER) -> list[d
             amount = parse_amount(_cell(row, amt_col), nf)
             if amount is None:
                 continue
-            records.append({
-                "year": cur_year, "month": cur_month,
-                "date": dt.date(cur_year, cur_month, 1),
-                "category": category, "amount": amount,
-                "comment": (_cell(row, amt_col + 1) or "").strip(),
-                "is_income": category == block.income_category,
-            })
+            records.append(
+                {
+                    "year": cur_year,
+                    "month": cur_month,
+                    "date": dt.date(cur_year, cur_month, 1),
+                    "category": category,
+                    "amount": amount,
+                    "comment": (_cell(row, amt_col + 1) or "").strip(),
+                    "is_income": category == block.income_category,
+                }
+            )
     return records
 
 
@@ -150,12 +165,17 @@ def load_block_extra(block=DEFAULT_BLOCK, nf=DEFAULT_NUMBER) -> list[dict]:
         if amount is None or amount == 0:
             continue
         yr = int(m.group(1))
-        recs.append({
-            "year": yr, "month": mon, "date": dt.date(yr, mon, 1),
-            "category": block.extra_category,
-            "amount": amount, "comment": f"{block.extra_category} (monthly)",
-            "is_income": False,
-        })
+        recs.append(
+            {
+                "year": yr,
+                "month": mon,
+                "date": dt.date(yr, mon, 1),
+                "category": block.extra_category,
+                "amount": amount,
+                "comment": f"{block.extra_category} (monthly)",
+                "is_income": False,
+            }
+        )
     return recs
 
 
@@ -174,25 +194,34 @@ def parse_flat_values(values, flat, nf=DEFAULT_NUMBER) -> list[dict]:
         )
     inc_set = {c.strip().lower() for c in flat.income_categories}
     recs: list[dict] = []
-    for row in values[flat.header_row + 1:]:
+    for row in values[flat.header_row + 1 :]:
         raw_date = str(_cell(row, di) or "").strip()
         amount = parse_amount(_cell(row, ai), nf)
         if not raw_date or amount is None:
             continue
-        ts = pd.to_datetime(raw_date, format=flat.date_format, errors="coerce",
-                            dayfirst=flat.dayfirst)
+        ts = pd.to_datetime(
+            raw_date, format=flat.date_format, errors="coerce", dayfirst=flat.dayfirst
+        )
         if pd.isna(ts):
             continue
         category = (_cell(row, ci) or "").strip() or "Uncategorized"
         desc = (_cell(row, xi) or "").strip() if xi is not None else ""
-        is_income = (amount > 0) if flat.income_if_amount_positive \
+        is_income = (
+            (amount > 0)
+            if flat.income_if_amount_positive
             else (category.strip().lower() in inc_set)
-        recs.append({
-            "year": int(ts.year), "month": int(ts.month),
-            "date": dt.date(int(ts.year), int(ts.month), 1),
-            "category": category, "amount": abs(amount),
-            "comment": desc, "is_income": is_income,
-        })
+        )
+        recs.append(
+            {
+                "year": int(ts.year),
+                "month": int(ts.month),
+                "date": dt.date(int(ts.year), int(ts.month), 1),
+                "category": category,
+                "amount": abs(amount),
+                "comment": desc,
+                "is_income": is_income,
+            }
+        )
     return recs
 
 

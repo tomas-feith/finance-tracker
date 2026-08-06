@@ -5,6 +5,7 @@ Run either way:
     python tests/test_parsers.py     # plain asserts
     pytest                            # auto-discovered test_* functions
 """
+
 import sys
 from pathlib import Path
 
@@ -30,9 +31,12 @@ def test_flat_by_category_name():
     ]
     recs = parse_flat_values(values, FlatLayout(income_categories=("Salary",)), _US)
     assert len(recs) == 3
-    assert sorted((r["date"].year, r["date"].month) for r in recs) == \
-        [(2025, 1), (2025, 1), (2025, 2)]
-    assert all(r["date"].day == 1 for r in recs)          # month-normalised
+    assert sorted((r["date"].year, r["date"].month) for r in recs) == [
+        (2025, 1),
+        (2025, 1),
+        (2025, 2),
+    ]
+    assert all(r["date"].day == 1 for r in recs)  # month-normalised
     sal = next(r for r in recs if r["category"] == "Salary")
     assert sal["is_income"] and sal["amount"] == 3000.0
 
@@ -55,8 +59,7 @@ def test_flat_columns_by_index_and_dayfirst():
         ["when", "what", "how much", "note"],
         ["05/01/2025", "Rent", "1.000,00", "March"],  # 5 Jan 2025, EU number fmt
     ]
-    flat = FlatLayout(date_col=0, category_col=1, amount_col=2, description_col=3,
-                      dayfirst=True)
+    flat = FlatLayout(date_col=0, category_col=1, amount_col=2, description_col=3, dayfirst=True)
     recs = parse_flat_values(values, flat, NumberFormat())  # euro default
     assert len(recs) == 1
     assert recs[0]["category"] == "Rent" and recs[0]["amount"] == 1000.0
@@ -67,13 +70,40 @@ def test_flat_columns_by_index_and_dayfirst():
 def test_block_basic():
     values = [
         ["JAN 2025"],
-        ["Food", "Comment", "Social Life", "Comment", "House Purchases", "Comment",
-         "Fixed costs", "Comment", "Travels", "Comment", "Others", "Comment",
-         "Income", "Comment"],
+        [
+            "Food",
+            "Comment",
+            "Social Life",
+            "Comment",
+            "House Purchases",
+            "Comment",
+            "Fixed costs",
+            "Comment",
+            "Travels",
+            "Comment",
+            "Others",
+            "Comment",
+            "Income",
+            "Comment",
+        ],
         ["12,50", "Lunch", "", "", "", "", "", "", "", "", "", "", "3 000,00", "Salary"],
         ["8,00", "Snack", "", "", "", "", "", "", "", "", "", "", "", ""],
-        ["20,50", "TOTAL", "0,00", "TOTAL", "0,00", "TOTAL", "0,00", "TOTAL",
-         "0,00", "TOTAL", "0,00", "TOTAL", "3 000,00", "TOTAL"],
+        [
+            "20,50",
+            "TOTAL",
+            "0,00",
+            "TOTAL",
+            "0,00",
+            "TOTAL",
+            "0,00",
+            "TOTAL",
+            "0,00",
+            "TOTAL",
+            "0,00",
+            "TOTAL",
+            "3 000,00",
+            "TOTAL",
+        ],
         ["FULL", "2 979,50"],
         [],
     ]

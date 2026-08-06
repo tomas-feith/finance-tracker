@@ -9,6 +9,7 @@ Run either way:
     python tests/test_freeport.py     # plain asserts
     pytest                             # auto-discovered test_* functions
 """
+
 import socket
 import sys
 from contextlib import contextmanager
@@ -54,7 +55,7 @@ def test_reuseaddr_listener_is_not_free():
 
 def test_free_port_is_free():
     with listening() as port:
-        pass                       # closed on exit, so the port is now free
+        pass  # closed on exit, so the port is now free
     assert is_free(port) is True
 
 

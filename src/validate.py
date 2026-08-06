@@ -1,5 +1,6 @@
 """Validate the parser: compare my per-month, per-category parsed sums against
 the sheet's own TOTAL rows in each Full tab. Any mismatch > 1 cent is flagged."""
+
 import sys
 from pathlib import Path
 
@@ -39,9 +40,7 @@ def sheet_totals():
 
 def main():
     df = _load_full_transactions()
-    parsed = (
-        df.groupby(["year", "month", "category"])["amount"].sum().round(2).to_dict()
-    )
+    parsed = df.groupby(["year", "month", "category"])["amount"].sum().round(2).to_dict()
     totals = sheet_totals()
 
     mismatches = []
@@ -58,7 +57,7 @@ def main():
     else:
         print(f"{len(mismatches)} mismatch(es):")
         for key, mine, theirs in sorted(mismatches)[:40]:
-            print(f"  {key}: parsed {mine:.2f}  vs sheet {theirs:.2f}  (diff {mine-theirs:+.2f})")
+            print(f"  {key}: parsed {mine:.2f}  vs sheet {theirs:.2f}  (diff {mine - theirs:+.2f})")
 
 
 if __name__ == "__main__":
