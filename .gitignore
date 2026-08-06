@@ -21,3 +21,6 @@ run_dashboard.sh
 Thumbs.db
 .idea/
 .vscode/
+
+# Claude project notes (personal)
+CLAUDE.md
