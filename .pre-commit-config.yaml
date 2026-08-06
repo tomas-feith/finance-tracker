@@ -3,7 +3,7 @@
 # Runs automatically on every `git commit`.
 repos:
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.0
+    rev: v8.30.1
     hooks:
       - id: gitleaks           # blocks commits containing secrets/keys/tokens
 
@@ -18,12 +18,12 @@ repos:
 
   # Lint & type-check (self-contained; pre-commit manages their envs).
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.21
+    rev: v0.16.1
     hooks:
       - id: ruff-check
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.2.0
+    rev: v2.3.0
     hooks:
       - id: mypy
         pass_filenames: false
