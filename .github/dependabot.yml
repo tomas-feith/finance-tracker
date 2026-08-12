@@ -19,10 +19,20 @@ updates:
       interval: weekly
     commit-message:
       prefix: deps
+    open-pull-requests-limit: 5
     groups:
-      # Dev tooling batched; runtime deps stay individual so a gspread or
-      # streamlit bump gets reviewed on its own.
+      # Dev tooling batched: a bad ruff or mypy bump is a lint diff, not a
+      # behaviour change.
       dev-tools:
         dependency-type: development
+        patterns:
+          - "*"
+      # Runtime PATCH bumps batched as well -- the high-volume, low-risk
+      # majority. Minor and major runtime bumps stay individual, so a
+      # google-auth or streamlit change gets reviewed on its own.
+      runtime-patch:
+        dependency-type: production
+        update-types:
+          - patch
         patterns:
           - "*"
