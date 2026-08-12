@@ -306,7 +306,9 @@ with tab_dq:
         "reach a late entry — so the sheet **undercounts** those months. "
         "The figures in this dashboard use the corrected (parsed) totals."
     )
-    from validate import sheet_totals
+    # Imported lazily: sheet_totals() hits the Google Sheets API, so it must not
+    # run on the demo path above.
+    from finance_tracker.validate import sheet_totals
 
     parsed = df_all.groupby(["year", "month", "category"])["amount"].sum().round(2).to_dict()
     rows = []

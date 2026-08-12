@@ -52,9 +52,17 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 [tool.mypy]
 python_version = "3.12"
 files = ["finance_tracker", "tests"]
-ignore_missing_imports = true
 warn_unused_ignores = true
 no_implicit_optional = true
+
+# Named explicitly rather than a blanket ignore_missing_imports. The blanket
+# form also silences an unresolvable FIRST-party import, which is not a
+# hypothetical: app.py still did `from validate import sheet_totals` after the
+# package restructure, and mypy had been quietly swallowing it because the flag
+# made every unresolved import acceptable.
+[[tool.mypy.overrides]]
+module = ["googleapiclient.*", "plotly.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
