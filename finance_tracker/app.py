@@ -17,6 +17,7 @@ from finance_tracker import analytics as A
 from finance_tracker.data import load_transactions
 from finance_tracker.sample_data import load_sample_transactions
 from finance_tracker.sheets_client import has_live_config
+from finance_tracker.userconfig import ConfigError
 
 st.set_page_config(page_title="Finances", page_icon="\U0001f4b0", layout="wide")
 
@@ -39,7 +40,36 @@ def get_data(demo: bool) -> pd.DataFrame:
 cat_order = A.order_categories
 
 # ------------------------------------------------------------------ load + filter
-df_all = get_data(DEMO)
+# Everything below assumes df_all exists, so a load failure has to stop here with
+# an explanation. The live path reaches the network and reads a gitignored
+# config.py, so the realistic failures are a revoked service-account key, a
+# renamed sheet tab, and a typo in config.py -- none of which the reader can
+# diagnose from a raw traceback halfway down the page.
+try:
+    df_all = get_data(DEMO)
+except ConfigError as exc:
+    st.error(f"**config.py could not be loaded.**\n\n{exc}")
+    st.info("Fix `config.py`, or unset it entirely to fall back to demo mode.")
+    st.stop()
+except Exception as exc:
+    st.error(f"**Could not load your data.**\n\n`{type(exc).__name__}: {exc}`")
+    st.info(
+        "If this is the live sheet: check that `secrets/service_account.json` is "
+        "present and still authorised, that the sheet is shared with the service "
+        "account, and that the tab names in `config.py` still match. "
+        "Set `FINANCE_DEMO=1` to explore with synthetic data instead."
+    )
+    st.stop()
+
+if df_all.empty:
+    st.warning("The sheet parsed cleanly but produced no transactions.")
+    st.info(
+        "Usually a layout mismatch: check `LAYOUT` and the column names in "
+        "`config.py` against your sheet. `uv run python -m finance_tracker.inspect_sheet` "
+        "prints each tab's structure."
+    )
+    st.stop()
+
 years = sorted(df_all["year"].unique())
 
 st.sidebar.title("\U0001f4b0 Finances")

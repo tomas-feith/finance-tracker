@@ -11,6 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import streamlit as st
 from streamlit.testing.v1 import AppTest
 
 APP = str(Path(__file__).resolve().parent.parent / "finance_tracker" / "app.py")
@@ -20,12 +21,74 @@ APP = str(Path(__file__).resolve().parent.parent / "finance_tracker" / "app.py")
 def app(monkeypatch: pytest.MonkeyPatch) -> AppTest:
     """The dashboard pinned to demo mode, so it never reaches Google Sheets."""
     monkeypatch.setenv("FINANCE_DEMO", "1")
+    # get_data is @st.cache_data, and that cache lives in the Streamlit runtime
+    # rather than the AppTest session -- so without this a later test reuses an
+    # earlier one's DataFrame and never calls the loader it just patched.
+    st.cache_data.clear()
     return AppTest.from_file(APP, default_timeout=60)
 
 
 def test_app_runs_without_exceptions(app: AppTest) -> None:
     app.run()
     assert not app.exception
+
+
+# --- load-failure boundary -------------------------------------------------
+# Everything after the load assumes df_all exists. Without a boundary a revoked
+# key or a renamed tab surfaces as a raw traceback partway down the page, which
+# says nothing about which of those it was.
+
+
+def test_a_load_failure_is_explained_rather_than_crashing(
+    app: AppTest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from finance_tracker import sample_data
+
+    def boom() -> None:
+        raise RuntimeError("the sheet went away")
+
+    # app.py rebinds this name on each AppTest import, so patching the module
+    # attribute before run() is what the fresh import picks up.
+    monkeypatch.setattr(sample_data, "load_sample_transactions", boom)
+    app.run()
+
+    assert not app.exception
+    assert any("Could not load your data" in e.value for e in app.error)
+    assert any("RuntimeError: the sheet went away" in e.value for e in app.error)
+
+
+def test_a_broken_config_names_config_py(app: AppTest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """ConfigError gets its own message -- the fix is in a different place."""
+    from finance_tracker import sample_data, userconfig
+
+    def boom() -> None:
+        raise userconfig.ConfigError("config.py raised SyntaxError: bad")
+
+    monkeypatch.setattr(sample_data, "load_sample_transactions", boom)
+    app.run()
+
+    assert not app.exception
+    assert any("config.py could not be loaded" in e.value for e in app.error)
+
+
+def test_an_empty_parse_suggests_the_layout_is_wrong(
+    app: AppTest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A clean parse yielding nothing is a layout mismatch, not an outage."""
+    import pandas as pd
+
+    from finance_tracker import sample_data
+    from finance_tracker.data import _COLS
+
+    monkeypatch.setattr(
+        sample_data,
+        "load_sample_transactions",
+        lambda: pd.DataFrame(columns=[*_COLS, "month_str"]),
+    )
+    app.run()
+
+    assert not app.exception
+    assert any("produced no transactions" in w.value for w in app.warning)
 
 
 def test_demo_banner_is_shown(app: AppTest) -> None:
