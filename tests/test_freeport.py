@@ -5,20 +5,12 @@ even when another process holds the port, so is_free had to ask for exclusive
 semantics explicitly. These tests hold a real listening socket open, which is
 what the launch scripts actually collide with.
 
-Run either way:
-    python tests/test_freeport.py     # plain asserts
-    pytest                             # auto-discovered test_* functions
 """
 
 import socket
-import sys
 from contextlib import contextmanager
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
-
-from freeport import find_free_port, is_free
+from finance_tracker.freeport import find_free_port, is_free
 
 
 @contextmanager
@@ -71,11 +63,3 @@ def test_find_returns_preferred_when_free():
     with listening() as port:
         pass
     assert find_free_port(port) == port
-
-
-if __name__ == "__main__":
-    for name, fn in sorted(globals().items()):
-        if name.startswith("test_") and callable(fn):
-            fn()
-            print(f"ok  {name}")
-    print("all passed")

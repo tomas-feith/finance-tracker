@@ -13,24 +13,27 @@ from pathlib import Path
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
+from finance_tracker import userconfig
+
 ROOT = Path(__file__).resolve().parent.parent
 CREDENTIALS_PATH = ROOT / "secrets" / "service_account.json"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+# The value config.example.py ships with; treat it as "not configured yet".
+PLACEHOLDER_SHEET_ID = "your-google-sheet-id-here"
 
 
 def get_sheet_id() -> str:
+    """The spreadsheet ID, from the SHEET_ID env var or config.py."""
     sid = os.environ.get("SHEET_ID")
     if sid:
         return sid
-    try:
-        from config import SHEET_ID
-
-        return SHEET_ID
-    except Exception as exc:  # pragma: no cover
+    from_config = userconfig.get("SHEET_ID")
+    if not from_config:
         raise RuntimeError(
-            "No spreadsheet ID found. Set SHEET_ID env var or create config.py "
-            "with SHEET_ID = '...'."
-        ) from exc
+            "No spreadsheet ID found. Set the SHEET_ID env var, or copy "
+            "config.example.py to config.py and fill in SHEET_ID."
+        )
+    return str(from_config)
 
 
 def has_live_config() -> bool:
@@ -40,9 +43,9 @@ def has_live_config() -> bool:
         return False
     try:
         sid = get_sheet_id()
-    except Exception:
+    except (RuntimeError, userconfig.ConfigError):
         return False
-    return bool(sid) and sid != "your-google-sheet-id-here"
+    return bool(sid) and sid != PLACEHOLDER_SHEET_ID
 
 
 @lru_cache(maxsize=1)

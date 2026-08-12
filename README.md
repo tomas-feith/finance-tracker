@@ -17,7 +17,7 @@ synthetic sample dataset so you can explore every feature. Install
 [uv](https://docs.astral.sh/uv/) (`pip install uv`), then:
 
 ```bash
-uv run streamlit run src/app.py
+uv run streamlit run finance_tracker/app.py
 ```
 
 `uv` creates the environment from the lockfile on first run. A banner marks demo
@@ -39,7 +39,7 @@ mode; force it anytime with `FINANCE_DEMO=1`. To use your own data, follow
 
 ## How it works
 
-`src/data.py` parses your sheet into a tidy transaction table, and all analytics
+`finance_tracker/data.py` parses your sheet into a tidy transaction table, and all analytics
 build on that single shape:
 
 | year | month | date | category | amount | comment | is_income | month_str |
@@ -48,7 +48,7 @@ build on that single shape:
 ### Sheet layouts
 
 The layout is configured in `config.py` (see `config.example.py`); everything
-about *how your sheet is shaped* lives in `src/schema.py`.
+about *how your sheet is shaped* lives in `finance_tracker/schema.py`.
 
 - **`flat`** *(recommended for most people)* — one row per transaction, e.g.
   `Date | Category | Amount | Note`. Columns are matched by header name or index;
@@ -58,15 +58,15 @@ about *how your sheet is shaped* lives in `src/schema.py`.
 
 - **`block`** *(the layout this project started with)* — each year in a
   `Full YYYY` tab as vertically stacked monthly blocks of `amount | comment`
-  column pairs with per-category `TOTAL` rows. `src/validate.py` cross-checks the
+  column pairs with per-category `TOTAL` rows. `finance_tracker/validate.py` cross-checks the
   parse against those totals. A monthly figure kept outside the blocks (rent, in
   the original sheet's `Lifetime` → `MONTHLY TIMELINE`) is injected as a monthly
   expense.
 
 Parsers for both layouts are pure functions over a raw value matrix, unit-tested
-in `tests/test_parsers.py` (run `python tests/test_parsers.py`). If neither
-layout fits, adapt `src/schema.py`/`src/data.py` — or just use **demo mode**
-(`src/sample_data.py`, synthetic data, no sheet at all).
+in `tests/test_parsers.py`. If neither
+layout fits, adapt `finance_tracker/schema.py` / `finance_tracker/data.py` — or just use **demo mode**
+(`finance_tracker/sample_data.py`, synthetic data, no sheet at all).
 
 ## Setup
 
@@ -94,12 +94,12 @@ Uses [uv](https://docs.astral.sh/uv/) (`pip install uv` if you don't have it):
 
 ```bash
 uv sync                         # create the env from pyproject + uv.lock
-uv run streamlit run src/app.py
+uv run streamlit run finance_tracker/app.py
 ```
 
 Then open <http://localhost:8501>. Data is cached for 10 minutes; use the
 **Refresh data** button in the sidebar to pull the latest. (No uv? `pip install
--e .` then `streamlit run src/app.py` also works.)
+-e .` then `streamlit run finance_tracker/app.py` also works.)
 
 If 8501 is already taken by another local dashboard, use `run_dashboard.bat`
 (Windows) or `./run_dashboard.sh`, which pick the next free port and print the
@@ -116,20 +116,40 @@ data files) plus **ruff** and **mypy** on every commit — the same checks CI ru
 
 ## Project layout
 
+`finance_tracker` is an installed package (`uv sync` puts it on the path), so
+every module, test and CLI helper imports it the same way — `from
+finance_tracker.data import load_transactions`.
+
 ```
-src/
+finance_tracker/
+  __init__.py       module map
   app.py            Streamlit dashboard
   analytics.py      metrics (pandas, no UI)
   data.py           layout-aware parser -> tidy transactions
   schema.py         sheet-layout config (block / flat, number format)
+  userconfig.py     loads the gitignored config.py from the project root
   sample_data.py    synthetic dataset for demo mode
   sheets_client.py  Google Sheets API wrapper
   validate.py       parse vs. sheet-total integrity check (block layout)
   inspect_sheet.py  print tab structure (dev helper)
-tests/test_parsers.py  unit tests for both layouts
+  freeport.py       picks a free port when 8501 is taken
+tests/
+  test_parsers.py     both sheet layouts
+  test_analytics.py   the metrics layer
+  test_sample_data.py demo data + the shared schema contract
+  test_userconfig.py  config.py loading and its failure modes
+  test_freeport.py    port selection (the Windows bind case)
 config.example.py   template for sheet ID + layout config
 pyproject.toml      deps + ruff / mypy / pytest config (uv.lock pins versions)
-.github/workflows/  CI: ruff + mypy + pytest
+.github/workflows/  CI: ruff + mypy + pytest + gitleaks
+```
+
+### Command-line helpers
+
+```bash
+uv run python -m finance_tracker.inspect_sheet   # print each tab's structure
+uv run python -m finance_tracker.validate        # parse vs. the sheet's own TOTALs
+uv run python -m finance_tracker.freeport        # print the next free port
 ```
 
 > **Note:** this repo contains **no financial data** — everything is read live
@@ -148,14 +168,24 @@ pyproject.toml      deps + ruff / mypy / pytest config (uv.lock pins versions)
 ## Development
 
 ```bash
-uv sync                  # install runtime + dev tools (ruff, mypy, pytest)
-uv run ruff check        # lint
-uv run mypy              # type-check
-uv run pytest            # tests
+uv sync                       # install runtime + dev tools (ruff, mypy, pytest)
+uv run ruff check .           # lint
+uv run ruff format --check .  # formatting
+uv run mypy                   # type-check
+uv run pytest                 # tests, with the coverage floor
 ```
 
-CI (`.github/workflows/ci.yml`) runs all three on every push and pull request,
-and the pre-commit hooks run them locally before each commit.
+CI (`.github/workflows/ci.yml`) runs all of these on every push and pull request,
+on both Ubuntu and Windows, plus a gitleaks scan over full history. The
+pre-commit hooks run the same commands locally through `uv run --no-sync`, so
+they use the versions pinned in `uv.lock` rather than a separately-pinned mirror
+that can drift out of agreement with CI.
+
+For a targeted run that would otherwise trip the coverage floor:
+
+```bash
+uv run pytest -k analytics --no-cov
+```
 
 ## License
 

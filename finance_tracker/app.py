@@ -1,27 +1,22 @@
 """Personal finance dashboard — reads the live Google Sheet, parses the
 transaction-level 'Full YYYY' tabs, and exposes analytics the sheet doesn't.
 
-Run:  .venv\\Scripts\\streamlit.exe run src\\app.py
+Run:  uv run streamlit run finance_tracker/app.py
 """
 
 from __future__ import annotations
 
 import os
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-import analytics as A
-from data import load_transactions
-from sample_data import load_sample_transactions
-from sheets_client import has_live_config
+from finance_tracker import analytics as A
+from finance_tracker.data import load_transactions
+from finance_tracker.sample_data import load_sample_transactions
+from finance_tracker.sheets_client import has_live_config
 
 st.set_page_config(page_title="Finances", page_icon="\U0001f4b0", layout="wide")
 
@@ -41,10 +36,7 @@ def get_data(demo: bool) -> pd.DataFrame:
     return load_sample_transactions() if demo else load_transactions()
 
 
-def cat_order(cats):
-    order = ["Rent", "Food", "Social Life", "House Purchases", "Fixed costs", "Travels", "Others"]
-    return [c for c in order if c in cats]
-
+cat_order = A.order_categories
 
 # ------------------------------------------------------------------ load + filter
 df_all = get_data(DEMO)
@@ -61,7 +53,10 @@ if st.sidebar.button("\U0001f504 Refresh data"):
     st.rerun()
 
 yr_sel = st.sidebar.multiselect("Years", years, default=years)
-cats_all = A.EXPENSE_CATEGORIES
+# Taken from the loaded data, not from a fixed list: a "flat" layout carries the
+# user's own category names, and filtering against the block sheet's names would
+# match none of them.
+cats_all = A.expense_categories(df_all)
 cat_sel = st.sidebar.multiselect("Expense categories", cats_all, default=cats_all)
 
 mask = df_all["year"].isin(yr_sel) & (df_all["is_income"] | df_all["category"].isin(cat_sel))

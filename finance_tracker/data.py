@@ -14,18 +14,13 @@ from __future__ import annotations
 
 import datetime as dt
 import re
-import sys
 from functools import lru_cache
-from pathlib import Path
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # project root (config.py)
-sys.path.insert(0, str(Path(__file__).resolve().parent))  # src (sheets_client)
-
-import schema as _schema
-from schema import DEFAULT_BLOCK, DEFAULT_NUMBER
-from sheets_client import get_values, list_tabs
+from finance_tracker import schema as _schema
+from finance_tracker.schema import DEFAULT_BLOCK, DEFAULT_NUMBER
+from finance_tracker.sheets_client import get_values, list_tabs
 
 MONTHS = {
     "JAN": 1,
@@ -44,8 +39,8 @@ MONTHS = {
 _MONTH_HEADER = re.compile(r"^\s*([A-Z]{3})[A-Z]*\s+(\d{4})\s*$", re.IGNORECASE)
 _TIMELINE_MONTH = re.compile(r"^\s*(\d{4})-([A-Za-z]{3,})\s*$")
 
-# back-compatible export (validate.py reads the active block's category columns)
-CATEGORY_COLS = _schema.resolve()[2].category_cols
+# validate.py reads the active block's category columns.
+CATEGORY_COLS = _schema.resolve().block.category_cols
 
 _COLS = ["year", "month", "date", "category", "amount", "comment", "is_income"]
 
@@ -233,29 +228,31 @@ def parse_flat_tab(tab, flat, nf=DEFAULT_NUMBER) -> list[dict]:
 @lru_cache(maxsize=1)
 def _load_full_transactions() -> pd.DataFrame:
     """Block transactions only (no extra/rent). Used by validate.py."""
-    _, nf, block, _ = _schema.resolve()
+    cfg = _schema.resolve()
     recs: list[dict] = []
     for t in list_tabs():
-        if t["title"].startswith(block.tab_prefix):
-            recs.extend(parse_block_tab(t["title"], block, nf))
+        if t["title"].startswith(cfg.block.tab_prefix):
+            recs.extend(parse_block_tab(t["title"], cfg.block, cfg.number))
     return _to_df(recs)
 
 
-@lru_cache(maxsize=1)
+# maxsize=2 so the two possible include_rent values coexist; at maxsize=1,
+# alternating between them evicted the cache on every call and re-read the sheet.
+@lru_cache(maxsize=2)
 def load_transactions(include_rent: bool = True) -> pd.DataFrame:
-    layout, nf, block, flat = _schema.resolve()
+    cfg = _schema.resolve()
 
-    if layout == "flat":
-        tabs = list(flat.tabs) or [t["title"] for t in list_tabs()]
+    if cfg.layout == "flat":
+        tabs = list(cfg.flat.tabs) or [t["title"] for t in list_tabs()]
         recs: list[dict] = []
         for tab in tabs:
-            recs.extend(parse_flat_tab(tab, flat, nf))
+            recs.extend(parse_flat_tab(tab, cfg.flat, cfg.number))
         return _to_df(recs)
 
     # default: block layout
     df = _load_full_transactions()
-    if include_rent and block.extra_tab:
-        extra = load_block_extra(block, nf)
+    if include_rent and cfg.block.extra_tab:
+        extra = load_block_extra(cfg.block, cfg.number)
         if extra:
             df = pd.concat([df, _to_df(extra)], ignore_index=True)
             df = df.sort_values(["date", "category"]).reset_index(drop=True)
@@ -263,9 +260,9 @@ def load_transactions(include_rent: bool = True) -> pd.DataFrame:
 
 
 def load_rent() -> list[dict]:
-    """Back-compat: the block layout's extra monthly figure (rent)."""
-    _, nf, block, _ = _schema.resolve()
-    return load_block_extra(block, nf)
+    """The block layout's extra monthly figure (rent)."""
+    cfg = _schema.resolve()
+    return load_block_extra(cfg.block, cfg.number)
 
 
 if __name__ == "__main__":

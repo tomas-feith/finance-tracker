@@ -9,8 +9,20 @@ config.py
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
+build/
+dist/
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+
+# --- coverage output ---
+# .coverage is a SQLite database rewritten by every test run; it was tracked for
+# a while and showed up as a diff after each invocation.
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 
 # --- local launch helpers ---
 run_dashboard.bat

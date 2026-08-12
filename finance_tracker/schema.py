@@ -14,11 +14,11 @@ of this from `config.py` by setting LAYOUT / NUMBER_FORMAT / BLOCK / FLAT.
 
 from __future__ import annotations
 
-import sys
 from dataclasses import dataclass, field
-from pathlib import Path
+from functools import cache
+from typing import NamedTuple, cast
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # project root (config.py)
+from finance_tracker import userconfig
 
 
 @dataclass(frozen=True)
@@ -35,7 +35,7 @@ class BlockLayout:
 
     tab_prefix: str = "Full "  # tabs whose title starts with this hold transactions
     # amount-column index -> category (comment assumed at index+1)
-    category_cols: dict = field(
+    category_cols: dict[int, str] = field(
         default_factory=lambda: {
             0: "Food",
             2: "Social Life",
@@ -61,34 +61,41 @@ class BlockLayout:
 class FlatLayout:
     """One row per transaction. Columns may be given by header name or 0-based index."""
 
-    tabs: tuple = ()  # explicit tab titles; empty = every tab
+    tabs: tuple[str, ...] = ()  # explicit tab titles; empty = every tab
     header_row: int = 0  # 0-based row holding column headers
-    date_col: object = "date"  # header name or int index
-    amount_col: object = "amount"
-    category_col: object = "category"
-    description_col: object = "description"
+    date_col: str | int = "date"  # header name or 0-based index
+    amount_col: str | int = "amount"
+    category_col: str | int = "category"
+    description_col: str | int = "description"
     date_format: str | None = None  # strptime fmt; None = let pandas infer
     dayfirst: bool = False  # True for DD/MM/YYYY sheets (ignored if date_format set)
     # income detection — either by category name, or by amount sign:
-    income_categories: tuple = ("Income",)
+    income_categories: tuple[str, ...] = ("Income",)
     income_if_amount_positive: bool = False  # if True, positive amount = income
 
 
-def resolve():
-    """Return (layout_name, NumberFormat, BlockLayout, FlatLayout), applying any
-    overrides found in config.py."""
-    layout = "block"
-    number, block, flat = NumberFormat(), BlockLayout(), FlatLayout()
-    try:
-        import config
+class Resolved(NamedTuple):
+    """The active sheet layout, after applying any config.py overrides."""
 
-        layout = getattr(config, "LAYOUT", layout)
-        number = getattr(config, "NUMBER_FORMAT", number)
-        block = getattr(config, "BLOCK", block)
-        flat = getattr(config, "FLAT", flat)
-    except Exception:
-        pass
-    return layout, number, block, flat
+    layout: str
+    number: NumberFormat
+    block: BlockLayout
+    flat: FlatLayout
+
+
+@cache
+def resolve() -> Resolved:
+    """The active layout, with any config.py overrides applied.
+
+    Cached: this used to be re-derived on every call (including at import time
+    in data.py), which meant re-reading config.py for each parse.
+    """
+    return Resolved(
+        layout=str(userconfig.get("LAYOUT", "block")),
+        number=cast(NumberFormat, userconfig.get("NUMBER_FORMAT", NumberFormat())),
+        block=cast(BlockLayout, userconfig.get("BLOCK", BlockLayout())),
+        flat=cast(FlatLayout, userconfig.get("FLAT", FlatLayout())),
+    )
 
 
 # module-level defaults (kept for back-compatible imports)

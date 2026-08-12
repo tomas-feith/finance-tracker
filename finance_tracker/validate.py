@@ -1,16 +1,16 @@
 """Validate the parser: compare my per-month, per-category parsed sums against
 the sheet's own TOTAL rows in each Full tab. Any mismatch > 1 cent is flagged."""
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
 import re
 
-from data import CATEGORY_COLS, MONTHS, _cell, _load_full_transactions, parse_amount
-from sheets_client import get_values, list_tabs
+from finance_tracker.data import (
+    CATEGORY_COLS,
+    MONTHS,
+    _cell,
+    _load_full_transactions,
+    parse_amount,
+)
+from finance_tracker.sheets_client import get_values, list_tabs
 
 _MONTH_HEADER = re.compile(r"^\s*([A-Z]{3})[A-Z]*\s+(\d{4})\s*$", re.IGNORECASE)
 

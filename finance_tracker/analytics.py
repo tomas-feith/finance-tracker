@@ -4,6 +4,7 @@ dashboard shows. Pure pandas, no Streamlit here so it stays testable."""
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 
 import pandas as pd
 
@@ -30,6 +31,29 @@ CATEGORY_COLORS = {
 }
 POS_COLOR = "#0ca30c"  # good / surplus
 NEG_COLOR = "#d03b3b"  # critical / deficit
+
+
+def order_categories(cats: Iterable[str]) -> list[str]:
+    """Put category names in display order: the known ones first, then the rest.
+
+    EXPENSE_CATEGORIES describes the original block sheet. A "flat" layout uses
+    whatever names the user's own sheet has, so unknown names must still appear
+    rather than being dropped.
+    """
+    remaining = set(cats)
+    known = [c for c in EXPENSE_CATEGORIES if c in remaining]
+    return known + sorted(remaining.difference(known))
+
+
+def expense_categories(df: pd.DataFrame) -> list[str]:
+    """The expense categories actually present in ``df``, in display order.
+
+    Read off the data rather than assumed: the sidebar filter used the hardcoded
+    EXPENSE_CATEGORIES list, so a flat-layout sheet -- whose categories are the
+    user's own names -- matched none of them and filtered every expense away,
+    leaving an income-only dashboard with no hint as to why.
+    """
+    return order_categories(df.loc[~df["is_income"], "category"].dropna().unique())
 
 
 def expenses(df: pd.DataFrame) -> pd.DataFrame:

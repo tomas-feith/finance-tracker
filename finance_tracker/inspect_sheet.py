@@ -1,18 +1,14 @@
-"""Print the structure of the spreadsheet so we can design the dashboard.
+"""Print the structure of the spreadsheet, for working out how to configure it.
 
-For each tab: dimensions, detected header row, and a few sample rows.
-Run:  .venv\\Scripts\\python.exe src\\inspect_sheet.py
+For each tab: dimensions, detected header row, and a few sample rows. Use it to
+fill in the column names/indices that config.py's FLAT or BLOCK layout needs.
+
+Run:  uv run python -m finance_tracker.inspect_sheet
 """
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # for config.py
-sys.path.insert(0, str(Path(__file__).resolve().parent))  # for sheets_client
-
-from sheets_client import get_values, list_tabs  # noqa: E402
+from finance_tracker.sheets_client import get_values, list_tabs
 
 
 def main() -> None:

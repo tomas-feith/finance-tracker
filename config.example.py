@@ -9,10 +9,13 @@ SHEET_ID = "your-google-sheet-id-here"
 # ---------------------------------------------------------------------------
 # OPTIONAL: sheet layout. Omit everything below to use the default "block"
 # layout (stacked monthly blocks). Most people will want the "flat" layout:
-# one row per transaction. See src/schema.py for every option.
+# one row per transaction. See finance_tracker/schema.py for every option.
+#
+# Not sure how your sheet is shaped? Print its structure with:
+#   uv run python -m finance_tracker.inspect_sheet
 # ---------------------------------------------------------------------------
 
-# from schema import FlatLayout, BlockLayout, NumberFormat
+# from finance_tracker.schema import FlatLayout, BlockLayout, NumberFormat
 
 # --- Example A: a simple flat transaction table ---------------------------
 # LAYOUT = "flat"

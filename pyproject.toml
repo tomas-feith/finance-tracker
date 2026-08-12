@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "Live Google Sheets personal-finance dashboard (Streamlit + Plotly)"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Tomás Feith" }]
 dependencies = [
     "google-api-python-client",
     "google-auth",
@@ -19,24 +22,36 @@ dev = [
     "ruff>=0.16",
     "pre-commit",
     "pytest-cov>=7.1.0",
+    "pandas-stubs",
 ]
+
+# An installed package, so `from finance_tracker...` resolves the same way in the
+# app, the tests and the CLI helpers. It replaced a `src/` directory of loose
+# modules that each had to prepend sys.path to find its siblings and config.py.
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["finance_tracker"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
-# These modules are run as scripts and must manipulate sys.path before importing
-# sibling modules / the root config.py, so imports-after-code is intentional.
-"src/*" = ["E402"]
-"tests/*" = ["E402"]
+# The block-layout fixtures embed real non-breaking spaces, because that is what
+# Google Sheets actually emits as a thousands separator in a European locale and
+# it is exactly what parse_amount has to strip. Replacing them with plain spaces
+# would quietly delete the case the test exists to cover.
+"tests/test_parsers.py" = ["RUF001"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src", "tests"]
+files = ["finance_tracker", "tests"]
 ignore_missing_imports = true
 warn_unused_ignores = true
 no_implicit_optional = true
@@ -47,14 +62,14 @@ addopts = "--cov --cov-report=term-missing"
 # For a targeted run that would trip the floor: uv run pytest -k foo --no-cov
 
 [tool.coverage.run]
-source = ["src", "freeport.py"]
+source = ["finance_tracker"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
-# A ratchet, not an aspiration: currently ~27%, so this only catches
-# regressions. Raise it as tests land -- validate.py, sample_data.py and
-# inspect_sheet.py are entirely untested today.
-fail_under = 25
+# A ratchet, not an aspiration: currently ~74%. Only catches regressions; raise
+# it as tests land. sheets_client.py (live Google API), validate.py and
+# inspect_sheet.py are the untested remainder -- all three need a real sheet.
+fail_under = 70
 show_missing = true
 exclude_also = [
     "if __name__ == .__main__.:",
