@@ -142,3 +142,36 @@ def test_year_filter_narrows_the_data(app: AppTest) -> None:
     assert not app.exception
     one_year_spend = next(m.value for m in app.metric if m.label == "Total spend")
     assert one_year_spend != all_spend
+
+
+# --- data-quality boundary -------------------------------------------------
+# The data-quality tab re-reads the sheet live, after the cached load has already
+# succeeded, so it fails on its own schedule -- a dropped TLS connection is enough.
+
+
+def test_a_failed_totals_read_does_not_crash_the_data_quality_tab(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """sheet_totals() is the one network call after the load boundary."""
+    from finance_tracker import data, sheets_client, validate
+    from finance_tracker.sample_data import load_sample_transactions
+
+    # Live mode, but with the load itself served from synthetic data: the point is
+    # to reach the data-quality tab, which demo mode short-circuits.
+    monkeypatch.delenv("FINANCE_DEMO", raising=False)
+    monkeypatch.setattr(sheets_client, "has_live_config", lambda: True)
+    monkeypatch.setattr(data, "load_transactions", load_sample_transactions)
+
+    def boom() -> dict[tuple[int, int, str], float]:
+        raise OSError("[SSL: WRONG_VERSION_NUMBER] wrong version number")
+
+    monkeypatch.setattr(validate, "sheet_totals", boom)
+    st.cache_data.clear()
+
+    at = AppTest.from_file(APP, default_timeout=60).run()
+
+    assert not at.exception
+    assert any("Could not read the sheet's own totals" in e.value for e in at.error)
+    assert any("WRONG_VERSION_NUMBER" in e.value for e in at.error)
+    # The rest of the page still rendered -- this is a tab-local failure.
+    assert "Total spend" in [m.label for m in at.metric]

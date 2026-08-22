@@ -340,9 +340,27 @@ with tab_dq:
     # run on the demo path above.
     from finance_tracker.validate import sheet_totals
 
+    # This is the one place in the page that reaches the network *after* the load
+    # boundary above: df_all comes from a 10-minute cache, so the sheet read here
+    # can fail on its own -- a transient TLS blip, a revoked key, an API quota --
+    # long after the data cached fine. Without a boundary that surfaced as a raw
+    # traceback under the tab header. The other tabs stay usable, so report it
+    # here rather than stopping the script.
+    try:
+        totals = sheet_totals()
+    except Exception as exc:
+        st.error(f"**Could not read the sheet's own totals.**\n\n`{type(exc).__name__}: {exc}`")
+        st.info(
+            "The figures on the other tabs are unaffected -- they come from the "
+            "cached parse. This check re-reads every `Full YYYY` tab live, so it "
+            "fails on a dropped connection, a revoked `secrets/service_account.json`, "
+            "or a Sheets API quota. Reload the tab to retry."
+        )
+        st.stop()
+
     parsed = df_all.groupby(["year", "month", "category"])["amount"].sum().round(2).to_dict()
     rows = []
-    for key, sv in sheet_totals().items():
+    for key, sv in totals.items():
         mine = round(parsed.get(key, 0.0), 2)
         if abs(mine - sv) > 0.01:
             rows.append(

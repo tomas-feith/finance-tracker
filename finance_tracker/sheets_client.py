@@ -20,6 +20,11 @@ CREDENTIALS_PATH = ROOT / "secrets" / "service_account.json"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 # The value config.example.py ships with; treat it as "not configured yet".
 PLACEHOLDER_SHEET_ID = "your-google-sheet-id-here"
+# googleapiclient defaults to num_retries=0, so a single transient TLS or socket
+# blip (SSLError WRONG_VERSION_NUMBER, ECONNRESET, timeout) propagates straight out
+# of execute() and takes the page with it. Non-zero re-runs those with exponential
+# backoff; it does not retry HTTP 4xx, so a revoked key still fails fast.
+NUM_RETRIES = 3
 
 
 def get_sheet_id() -> str:
@@ -61,7 +66,9 @@ def _service():
 
 def list_tabs() -> list[dict]:
     """Return metadata for each tab: title, rows, cols, index."""
-    meta = _service().spreadsheets().get(spreadsheetId=get_sheet_id()).execute()
+    meta = (
+        _service().spreadsheets().get(spreadsheetId=get_sheet_id()).execute(num_retries=NUM_RETRIES)
+    )
     out = []
     for s in meta.get("sheets", []):
         p = s["properties"]
@@ -80,5 +87,11 @@ def list_tabs() -> list[dict]:
 def get_values(tab: str, cell_range: str | None = None) -> list[list]:
     """Return raw cell values for a tab (optionally a specific A1 range)."""
     rng = f"'{tab}'!{cell_range}" if cell_range else f"'{tab}'"
-    resp = _service().spreadsheets().values().get(spreadsheetId=get_sheet_id(), range=rng).execute()
+    resp = (
+        _service()
+        .spreadsheets()
+        .values()
+        .get(spreadsheetId=get_sheet_id(), range=rng)
+        .execute(num_retries=NUM_RETRIES)
+    )
     return resp.get("values", [])
